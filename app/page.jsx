@@ -74,10 +74,10 @@ export default function Portfolio() {
           {/* HOME assembles all home sections */}
           {page === "home" && (
             <>
-              <Hero          t={T} navigate={navigate} />
+              <Hero          t={T} navigate={navigate} dark={dark} />
               <MarqueeBand   t={T} />
               <Experience    t={T} />
-              <ProjectsBento t={T} navigate={navigate} />
+              <ProjectsBento t={T} navigate={navigate} dark={dark} />
               <SkillsGrid    t={T} dark={dark} />
             </>
           )}

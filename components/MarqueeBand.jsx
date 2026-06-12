@@ -1,8 +1,4 @@
 "use client";
-/**
- * components/MarqueeBand.jsx
- * Scrolling tech-stack ticker
- */
 import { MARQUEE } from "../lib/data";
 
 const CSS = `
@@ -10,29 +6,47 @@ const CSS = `
     from { transform: translateX(0); }
     to   { transform: translateX(-50%); }
   }
-  .marquee-wrap { overflow: hidden; }
+  .marquee-wrap {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent, black 9%, black 91%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 9%, black 91%, transparent);
+  }
   .marquee-inner {
     display: flex; width: max-content;
-    animation: marqueeScroll 28s linear infinite;
+    animation: marqueeScroll 30s linear infinite;
   }
   .marquee-item {
+    display: flex; align-items: center; gap: 0;
     font-family: 'Geist Mono', monospace;
-    font-size: 12px; letter-spacing: .02em; white-space: nowrap;
-    margin-right: 52px;
+    font-size: 12px; letter-spacing: .03em; white-space: nowrap;
+  }
+  .marquee-text { margin-right: 20px; }
+  .marquee-sep {
+    margin-right: 20px;
+    opacity: 0.28;
+    font-size: 10px;
   }
 `;
 
 export default function MarqueeBand({ t }) {
+  const items = [...MARQUEE, ...MARQUEE];
   return (
     <>
       <style>{CSS}</style>
       <div
         className="marquee-wrap"
-        style={{ borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}`, padding: "12px 0" }}
+        style={{
+          borderTop: `1px solid ${t.border}`,
+          borderBottom: `1px solid ${t.border}`,
+          padding: "13px 0",
+        }}
       >
         <div className="marquee-inner">
-          {[...MARQUEE, ...MARQUEE].map((s, i) => (
-            <span key={i} className="marquee-item" style={{ color: t.dim }}>{s}</span>
+          {items.map((s, i) => (
+            <span key={i} className="marquee-item" style={{ color: t.dim }}>
+              <span className="marquee-text">{s}</span>
+              <span className="marquee-sep">✦</span>
+            </span>
           ))}
         </div>
       </div>

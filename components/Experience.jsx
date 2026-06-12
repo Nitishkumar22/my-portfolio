@@ -1,5 +1,5 @@
 "use client";
-// components/Experience.jsx
+import { useRef, useEffect, useState } from "react";
 import { EXPERIENCE } from "../lib/data";
 import ExperienceCarousel from "./ExperienceCarousel";
 
@@ -17,13 +17,35 @@ const CSS = `
 `;
 
 export default function Experience({ t }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.08 }
+    );
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <>
       <style>{CSS}</style>
-      <section className="exp-section">
-        <div className="exp-inner">
+      <section className="exp-section" ref={ref}>
+        <div
+          className="exp-inner"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "none" : "translateY(24px)",
+            transition: "opacity 0.7s ease, transform 0.7s ease",
+          }}
+        >
           <div className="exp-header">
-            <h2 className="exp-title" style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", color: t.text }}>
+            <h2
+              className="exp-title"
+              style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", color: t.text }}
+            >
               Experience
             </h2>
             <span className="exp-subtitle" style={{ color: t.dim }}>// work history</span>

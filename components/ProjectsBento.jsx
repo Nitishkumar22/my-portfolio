@@ -1,5 +1,5 @@
 "use client";
-// components/ProjectsBento.jsx
+import { useState, useRef, useEffect } from "react";
 import { PROJECTS } from "../lib/data";
 
 const CSS = `
@@ -14,21 +14,30 @@ const CSS = `
     margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
   }
   .bento-title { font-family: 'Geist', sans-serif; font-weight: 700; letter-spacing: -.04em; }
-  .bento-all   { font-family: 'Geist', sans-serif; font-size: 13px; background: none; border: none; cursor: pointer; transition: color .2s; }
+  .bento-all   {
+    font-family: 'Geist', sans-serif; font-size: 13px;
+    background: none; border: none; cursor: pointer; transition: color .2s;
+  }
 
   .bento-grid {
     display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
   }
   .bento-card {
-    border-radius: 14px; padding: 1.75rem; position: relative; overflow: hidden;
-    transition: transform .3s cubic-bezier(.4,0,.2,1);
+    border-radius: 14px; padding: 1.75rem;
+    position: relative; overflow: hidden;
+    transition: transform .3s cubic-bezier(.4,0,.2,1), border-color .25s, box-shadow .3s;
     animation: cardFadeUp .55s both;
+    cursor: default;
   }
-  .bento-card:hover { transform: translateY(-4px); }
+  .bento-card:hover { transform: translateY(-5px); }
   .bento-card.large { grid-column: span 2; }
 
   .bento-year { position: absolute; top: 18px; right: 18px; font-family: 'Geist Mono', monospace; font-size: 11px; }
-  .bento-num  { font-family: 'Geist', sans-serif; font-size: 56px; font-weight: 700; letter-spacing: -.05em; line-height: 1; margin-bottom: 16px; user-select: none; }
+  .bento-num  {
+    font-family: 'Geist', sans-serif; font-size: 56px; font-weight: 700;
+    letter-spacing: -.05em; line-height: 1; margin-bottom: 16px;
+    user-select: none;
+  }
   .bento-name { font-family: 'Geist', sans-serif; font-size: 20px; font-weight: 600; letter-spacing: -.03em; margin-bottom: 10px; }
   .bento-desc { font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
   .bento-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
@@ -39,22 +48,107 @@ const CSS = `
   @media(max-width:480px) { .bento-grid { grid-template-columns: 1fr; } .bento-card.large { grid-column: span 1; } }
 `;
 
-export default function ProjectsBento({ t, navigate }) {
+function BentoCard({ p, i, t, dark, navigate }) {
+  const ref = useRef(null);
+  const [glow, setGlow] = useState({ x: 0, y: 0, on: false });
+
+  const glowColor = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
+  const borderHover = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.14)";
+  const boxShadowHover = dark
+    ? "0 20px 48px rgba(0,0,0,0.55)"
+    : "0 20px 48px rgba(0,0,0,0.10)";
+
+  return (
+    <div
+      ref={ref}
+      className={`bento-card${p.size === "large" ? " large" : ""}`}
+      onMouseMove={e => {
+        const r = ref.current.getBoundingClientRect();
+        setGlow({ x: e.clientX - r.left, y: e.clientY - r.top, on: true });
+      }}
+      onMouseLeave={() => setGlow(g => ({ ...g, on: false }))}
+      style={{
+        background: glow.on
+          ? `radial-gradient(circle 360px at ${glow.x}px ${glow.y}px, ${glowColor} 0%, ${t.card} 65%)`
+          : t.card,
+        border: `1px solid ${glow.on ? borderHover : t.border}`,
+        boxShadow: glow.on ? boxShadowHover : "none",
+        animationDelay: `${i * 0.08}s`,
+      }}
+    >
+      <span className="bento-year" style={{ color: t.dim }}>{p.year}</span>
+      <div className="bento-num" style={{ color: t.dim }}>0{i + 1}</div>
+      <h3 className="bento-name" style={{ color: t.text }}>{p.title}</h3>
+      <p
+        className="bento-desc"
+        style={{ color: t.muted, maxWidth: p.size === "large" ? 480 : "100%" }}
+      >
+        {p.desc}
+      </p>
+      <div className="bento-tags">
+        {p.tags.map(tag => (
+          <span
+            key={tag}
+            className="bento-tag"
+            style={{ border: `1px solid ${t.border}`, color: t.dim }}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+      <a
+        href={p.live}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bento-link"
+        style={{ color: t.muted }}
+        onMouseOver={e => { e.currentTarget.style.color = t.text; }}
+        onMouseOut={e => { e.currentTarget.style.color = t.muted; }}
+      >
+        Visit website ↗
+      </a>
+    </div>
+  );
+}
+
+export default function ProjectsBento({ t, navigate, dark }) {
+  const sectionRef = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.08 }
+    );
+    if (sectionRef.current) obs.observe(sectionRef.current);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <>
       <style>{CSS}</style>
-      <section className="bento-section">
-        <div className="bento-inner">
+      <section className="bento-section" ref={sectionRef}>
+        <div
+          className="bento-inner"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "none" : "translateY(24px)",
+            transition: "opacity 0.7s ease, transform 0.7s ease",
+          }}
+        >
           <div className="bento-header">
-            <h2 className="bento-title" style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", color: t.text }}>
+            <h2
+              className="bento-title"
+              style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", color: t.text }}
+            >
               My Projects
             </h2>
             <button
               className="bento-all"
               style={{ color: t.muted }}
               onClick={() => navigate("projects")}
-              onMouseOver={e => e.currentTarget.style.color = t.text}
-              onMouseOut={e => e.currentTarget.style.color = t.muted}
+              onMouseOver={e => { e.currentTarget.style.color = t.text; }}
+              onMouseOut={e => { e.currentTarget.style.color = t.muted; }}
             >
               View all →
             </button>
@@ -62,40 +156,14 @@ export default function ProjectsBento({ t, navigate }) {
 
           <div className="bento-grid">
             {PROJECTS.map((p, i) => (
-              <div
+              <BentoCard
                 key={p.title}
-                className={`bento-card ${p.size === "large" ? "large" : ""}`}
-                style={{
-                  background: t.card,
-                  border: `1px solid ${t.border}`,
-                  animationDelay: `${i * 0.08}s`,
-                }}
-              >
-                <span className="bento-year" style={{ color: t.dim }}>{p.year}</span>
-                <div className="bento-num" style={{ color: t.dim }}>0{i + 1}</div>
-                <h3 className="bento-name" style={{ color: t.text }}>{p.title}</h3>
-                <p className="bento-desc" style={{ color: t.muted, maxWidth: p.size === "large" ? 480 : "100%" }}>
-                  {p.desc}
-                </p>
-                <div className="bento-tags">
-                  {p.tags.map(tag => (
-                    <span key={tag} className="bento-tag" style={{ border: `1px solid ${t.border}`, color: t.dim }}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <a
-                  href={p.live}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bento-link"
-                  style={{ color: t.muted }}
-                  onMouseOver={e => e.currentTarget.style.color = t.text}
-                  onMouseOut={e => e.currentTarget.style.color = t.muted}
-                >
-                  Visit website ↗
-                </a>
-              </div>
+                p={p}
+                i={i}
+                t={t}
+                dark={dark}
+                navigate={navigate}
+              />
             ))}
           </div>
         </div>
