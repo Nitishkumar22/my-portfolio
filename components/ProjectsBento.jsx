@@ -43,15 +43,42 @@ const CSS = `
   .bento-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
   .bento-tag  { padding: 3px 10px; border-radius: 100px; font-size: 11px; font-family: 'Geist Mono', monospace; }
   .bento-link { font-size: 13px; font-family: 'Geist', sans-serif; text-decoration: none; transition: color .2s; }
+  .bento-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 6px; font-size: 10px;
+    font-family: 'Geist Mono', monospace; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .bento-card-accent {
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 14px 14px 0 0;
+  }
 
   @media(max-width:620px) { .bento-card.large { grid-column: span 1; } }
   @media(max-width:480px) { .bento-grid { grid-template-columns: 1fr; } .bento-card.large { grid-column: span 1; } }
 `;
 
+const BADGE_STYLES = {
+  DevOps: {
+    bg:       "rgba(99,102,241,0.15)",
+    border:   "rgba(99,102,241,0.30)",
+    text:     "#818cf8",
+    gradient: "linear-gradient(to right, #6366f1, #a855f7)",
+  },
+  SaaS: {
+    bg:       "rgba(16,185,129,0.15)",
+    border:   "rgba(16,185,129,0.30)",
+    text:     "#34d399",
+    gradient: "linear-gradient(to right, #10b981, #06b6d4)",
+  },
+};
+
 function BentoCard({ p, i, t, dark, navigate }) {
   const ref = useRef(null);
   const [glow, setGlow] = useState({ x: 0, y: 0, on: false });
 
+  const badge = p.badge ? BADGE_STYLES[p.badge] : null;
   const glowColor = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
   const borderHover = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.14)";
   const boxShadowHover = dark
@@ -76,7 +103,21 @@ function BentoCard({ p, i, t, dark, navigate }) {
         animationDelay: `${i * 0.08}s`,
       }}
     >
+      {badge && (
+        <div
+          className="bento-card-accent"
+          style={{ background: badge.gradient }}
+        />
+      )}
       <span className="bento-year" style={{ color: t.dim }}>{p.year}</span>
+      {badge && (
+        <div
+          className="bento-badge"
+          style={{ background: badge.bg, border: `1px solid ${badge.border}`, color: badge.text }}
+        >
+          <span>⬡</span>{p.badge}
+        </div>
+      )}
       <div className="bento-num" style={{ color: t.dim }}>0{i + 1}</div>
       <h3 className="bento-name" style={{ color: t.text }}>{p.title}</h3>
       <p

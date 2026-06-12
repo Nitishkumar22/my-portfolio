@@ -41,13 +41,15 @@ const PROJ_CSS = `
 
 export function ProjectsPage({ t }) {
   const [filter, setFilter] = useState("All");
-  const cats = ["All","MERN","Frontend"];
+  const cats = ["All", "DevOps", "MERN", "Frontend"];
 
-  const filtered = filter === "All" ? PROJECTS : PROJECTS.filter(p =>
-    filter === "MERN"
-      ? p.tags.some(tag => ["React","MongoDB","Next.js","Node.js","Express","TypeScript"].includes(tag))
-      : p.tags.some(tag => ["JavaScript","Tailwind","HTML","CSS"].includes(tag))
-  );
+  const filtered = filter === "All" ? PROJECTS : PROJECTS.filter(p => {
+    if (filter === "DevOps")
+      return p.tags.some(tag => ["GCP","Kubernetes","ArgoCD","Terraform","GitHub Actions","KEDA","Prometheus","Helm","Docker"].includes(tag));
+    if (filter === "MERN")
+      return p.tags.some(tag => ["React","MongoDB","Next.js","Node.js","Express","TypeScript"].includes(tag));
+    return p.tags.some(tag => ["JavaScript","Tailwind","HTML","CSS"].includes(tag));
+  });
 
   return (
     <>
