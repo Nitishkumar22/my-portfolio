@@ -53,7 +53,7 @@ export function AboutPage({ t }) {
             Hello,<br />I&apos;m Nitish Kumar
           </h1>
           <h2 className="about-sub" style={{ fontSize: "clamp(1.2rem,3vw,2rem)", color: t.muted }}>
-            MERN Stack Developer.
+            MERN Stack Developer & DevOps Engineer.
           </h2>
         </div>
 
@@ -71,8 +71,9 @@ export function AboutPage({ t }) {
               production.
             </p>
             <p className="about-p" style={{ color: t.muted, marginBottom: 32 }}>
-              Focusing on performance, accessibility, and maintainability — as a
-              full-time engineer and freelancer across gaming, design &amp; SaaS domains.
+              From building robust Node.js backends to deploying Kubernetes clusters,
+              I thrive at the intersection of development and operations — shipping
+              production-ready systems that scale with real users.
             </p>
             <div className="about-socials">
               <a
@@ -119,6 +120,7 @@ export function AboutPage({ t }) {
               {[
                 "2.5+ years of experience in MERN Stack Development",
                 "Specialized in MERN stack (MongoDB, Express, React, Node.js)",
+                "Hands-on DevOps experience with Docker, Kubernetes & CI/CD pipelines",
                 "Freelance & Full-time project experience across industries",
                 "Strong focus on UI/UX, scalability, and performance optimization",
               ].map(item => (
@@ -132,7 +134,7 @@ export function AboutPage({ t }) {
               {[
                 "Finalist at CodeBite Hackathon 2023",
                 "Delivered 10+ successful freelance & enterprise projects",
-                "Worked with agencies in gaming, design & SaaS domains",
+                "Worked with agencies in design & SaaS domains",
                 "Recognized for solving complex challenges with clean architecture",
               ].map(item => (
                 <div key={item} className="about-list-item" style={{ borderBottom: `1px solid ${t.border}`, color: t.muted }}>

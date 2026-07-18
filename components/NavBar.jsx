@@ -96,7 +96,7 @@ export default function NavBar({ page, setPage, dark, setDark, t }) {
               </button>
             ))}
 
-            <a href="#" className="nav-resume" style={{ color: t.muted }}
+            <a href="/Nitish_Kumar_DevOps_Cv.pdf" download="Nitish_Kumar_DevOps_Cv.pdf" className="nav-resume" style={{ color: t.muted }}
               onMouseOver={e => e.currentTarget.style.color = t.text}
               onMouseOut={e => e.currentTarget.style.color = t.muted}>
               Resume ↓
