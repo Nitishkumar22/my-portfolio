@@ -2,6 +2,7 @@
 // components/NavBar.jsx
 import { useState, useEffect } from "react";
 import ThemeToggle from "./ThemeToggle";
+import ResumeModal from "./ResumeModal";
 
 const NAV_CSS = `
   .nav-root {
@@ -48,6 +49,7 @@ const NAV_CSS = `
   .nav-resume {
     font-family: 'Geist', sans-serif; font-size: 13px;
     text-decoration: none; transition: color .2s;
+    border: none; background: none; cursor: pointer; padding: 0;
   }
   @media(max-width:600px) {
     .nav-resume { display: none; }
@@ -57,6 +59,7 @@ const NAV_CSS = `
 
 export default function NavBar({ page, setPage, dark, setDark, t }) {
   const [scrolled, setScrolled] = useState(false);
+  const [resumeOpen, setResumeOpen] = useState(false);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
@@ -96,16 +99,17 @@ export default function NavBar({ page, setPage, dark, setDark, t }) {
               </button>
             ))}
 
-            <a href="/Nitish_Kumar_DevOps_Cv.pdf" download="Nitish_Kumar_DevOps_Cv.pdf" className="nav-resume" style={{ color: t.muted }}
+            <button onClick={() => setResumeOpen(true)} className="nav-resume" style={{ color: t.muted }}
               onMouseOver={e => e.currentTarget.style.color = t.text}
               onMouseOut={e => e.currentTarget.style.color = t.muted}>
               Resume ↓
-            </a>
+            </button>
 
             <ThemeToggle t={t} />
           </div>
         </div>
       </nav>
+      <ResumeModal open={resumeOpen} onClose={() => setResumeOpen(false)} t={t} />
     </>
   );
 }
