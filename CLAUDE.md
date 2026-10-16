@@ -13,51 +13,55 @@ Modern, minimalist portfolio website for Nitish Kumar - MERN Stack Developer & D
 - **Icons:** 
   - react-icons (social media icons)
   - lucide-react (UI icons)
-  - skillicons.dev + devicon (skill badges)
+  - skillicons.dev + devicon + simple-icons (skill badges, self-hosted in public/icons/skills)
 - **Carousel:** Swiper.js
 - **Theme:** next-themes (dark/light mode)
-- **Animations:** CSS animations + Framer Motion concepts
+- **Animations:** GSAP (hero intro, cursor, ScrollTrigger reveals), Motion/Framer Motion (`motion/react` — resume modal, projects filter), CSS keyframes
+- **Smooth scroll:** Locomotive Scroll v5 (built on Lenis, pinned to the same `lenis` version) driven by GSAP's ticker — desktop only
+- **3D:** Three.js + GLSL aurora shader behind the hero — desktop only, lazy-loaded
 
 ## Project Structure
+Pages are real routes, so each one is exported as its own static HTML file
+(readable by crawlers and AI agents).
 ```
 /app
-  layout.js          # Root layout with ThemeProvider
-  page.jsx           # Main portfolio orchestrator
-  globals.css        # Global styles + theme variables
+  layout.js            # Root layout: fonts, metadata, JSON-LD, ThemeProvider, SiteShell
+  page.jsx             # Home route (Hero, Marquee, Experience, Projects, Skills)
+  about|projects|designs/page.jsx   # Routes with per-page metadata
+  robots.js, sitemap.js             # Generated at build (force-static)
+  llms.txt/route.js    # Markdown summary for LLMs, generated from lib/data.js
+  globals.css
 
-/app-pages
-  AboutPage.jsx      # About section
-  ProjectsPage.jsx   # Projects showcase
-  DesignsPage.jsx    # Design portfolio
+/app-pages             # Page bodies (AboutPage, ProjectsPage, DesignsPage)
 
 /components
-  Loader.jsx              # Signature animation loader (3.2s)
-  NavBar.jsx              # Fixed navigation with theme toggle
-  Hero.jsx                # Hero section with typewriter
-  ThemeToggle.jsx         # Animated theme switcher
-  ExperienceCarousel.jsx  # Swiper carousel for experience
-  Experience.jsx          # Experience section wrapper
-  MarqueeBand.jsx         # Scrolling tech stack
-  ProjectsBento.jsx       # Projects grid
-  SkillsGrid.jsx          # Skills with icons
-  Footer.jsx              # Footer with social links
+  SiteShell.jsx        # Persistent shell + useSite() context ({ t, dark, navigate, introDone })
+  RoutePages.jsx       # Client bridges for the server route files
+  Loader.jsx           # Signature loader — decorative overlay, page is visible underneath
+  SmoothScroll.jsx     # Locomotive/Lenis + ScrollTrigger; exports lockScroll()
+  HeroShader.jsx       # Three.js aurora (lazy, desktop only, falls back to CSS orbs)
+  AgentTools.jsx       # WebMCP tools for AI agents (navigator.modelContext)
+  CursorFollower.jsx   # gsap.quickTo cursor (fine pointers only)
+  NavBar, Footer, Hero, ExperienceCarousel, Experience, MarqueeBand,
+  ProjectsBento, SkillsGrid, ResumeModal, ThemeToggle, theme-provider
 
-/hooks
-  useTypewriter.js   # Typewriter effect hook
-
+/hooks                 # useTypewriter, useReveal (ScrollTrigger), useIsClient
 /lib
-  data.js            # All content data
-  theme.js           # Theme color definitions
-
-/components
-  theme-provider.jsx # next-themes wrapper
+  data.js              # All content data
+  site.js              # SITE_URL, identity, ROUTES, RESUMES
+  theme.js             # Theme color tokens
+  gsap.js              # Lazy loaders for GSAP / ScrollTrigger
+  motionFeatures.js    # Lazy Motion features for <LazyMotion>
+  shaders/             # GLSL + Three.js scene for the hero
+/public/icons/skills   # Self-hosted skill icons
+/public/designs        # barba.webm (replaces a 1.3 MB GIF) + poster
 ```
 
 ## Key Features
 
 ### 1. Signature Loader
 - Custom SVG handwriting animation
-- Duration: ~3.2 seconds (optimized from 5.6s)
+- Duration: ~1.75 seconds, once per browser session, skippable (click / key / scroll)
 - Font: Great Vibes (cursive)
 - Phases: Draw → Fill → Slide out
 
@@ -148,9 +152,15 @@ npm start      # Start production server
 8. ✅ Optimized loader timing (43% faster)
 9. ✅ Updated typewriter to show only 2 roles
 
+## Performance rules
+- Run Lighthouse against `npm run build` output (e.g. `npx serve out`), never `next dev` — dev is unminified.
+- Keep GSAP, ScrollTrigger, Motion, Three.js and Locomotive out of the initial bundle (dynamic imports via lib/gsap.js, LazyMotion, next/dynamic).
+- Never fade large hero text from opacity 0 — it delays LCP. Move it with transforms only.
+- `NEXT_PUBLIC_SITE_URL` (or Netlify's `URL`) sets canonical/sitemap/JSON-LD URLs.
+
 ## Notes for AI Assistants
 - Project uses vanilla CSS, NOT Tailwind (despite having it in skills)
 - Skiper UI components require Tailwind, so custom implementations were used
-- Theme system uses both local state and next-themes for compatibility
-- All icons use external CDNs (skillicons.dev, devicon, react-icons)
-- Loader timing is critical for UX - keep under 3.5s
+- Theme comes from next-themes; static HTML is always dark until hydration (see SiteShell)
+- Skill icons are self-hosted in public/icons/skills (originally from skillicons.dev / devicon / simple-icons)
+- Loader timing is critical for UX - keep under 2s; the key `nk-loader-seen` is shared by Loader.jsx and the inline script in layout.js

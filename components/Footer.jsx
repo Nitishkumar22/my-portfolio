@@ -1,9 +1,10 @@
 "use client";
 // components/Footer.jsx
+import Link from "next/link";
 import { FaLinkedin, FaGithub } from "react-icons/fa";
 import { Mail, Phone } from "lucide-react";
 
-export default function Footer({ t, navigate }) {
+export default function Footer({ t }) {
   return (
     <footer style={{ borderTop: `1px solid ${t.border}`, padding: "2rem 1.5rem" }}>
       <div
@@ -14,8 +15,8 @@ export default function Footer({ t, navigate }) {
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32 }}>
           <div>
-            <button
-              onClick={() => navigate("home")}
+            <Link
+              href="/"
               style={{
                 fontFamily: "'Geist', sans-serif", fontWeight: 700,
                 fontSize: 16, color: t.text, letterSpacing: "-.04em",
@@ -31,14 +32,16 @@ export default function Footer({ t, navigate }) {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 11, fontWeight: 700,
                 }}
+                aria-hidden="true"
               >
                 NK
               </span>
               Nitish Kumar
-            </button>
+            </Link>
             <div style={{ display: "flex", gap: 12 }}>
               <a
                 href="https://www.linkedin.com/in/nitishkweb/"
+                aria-label="LinkedIn"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -49,10 +52,11 @@ export default function Footer({ t, navigate }) {
                 onMouseOver={e => { e.currentTarget.style.borderColor = t.muted; e.currentTarget.style.color = t.text; }}
                 onMouseOut={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.muted; }}
               >
-                <FaLinkedin size={18} />
+                <FaLinkedin size={18} aria-hidden="true" />
               </a>
               <a
                 href="https://github.com/Nitishkumar22"
+                aria-label="GitHub"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -63,7 +67,7 @@ export default function Footer({ t, navigate }) {
                 onMouseOver={e => { e.currentTarget.style.borderColor = t.muted; e.currentTarget.style.color = t.text; }}
                 onMouseOut={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.muted; }}
               >
-                <FaGithub size={18} />
+                <FaGithub size={18} aria-hidden="true" />
               </a>
             </div>
           </div>

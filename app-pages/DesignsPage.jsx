@@ -1,6 +1,6 @@
 "use client";
 // app-pages/DesignsPage.jsx
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DESIGNS } from "../lib/data";
 
 const CSS = `
@@ -26,11 +26,11 @@ const CSS = `
     cursor: pointer; break-inside: avoid; margin-bottom: 12px;
     animation: designFadeIn .55s both;
   }
-  .design-card img {
-    width: 100%; display: block; min-height: 80px; object-fit: cover;
+  .design-card img, .design-card video {
+    width: 100%; height: auto; display: block; min-height: 80px; object-fit: cover;
     transition: transform .5s cubic-bezier(.4,0,.2,1);
   }
-  .design-card:hover img { transform: scale(1.05); }
+  .design-card:hover img, .design-card:hover video { transform: scale(1.05); }
 
   .design-reveal {
     position: absolute; inset: 0;
@@ -51,6 +51,44 @@ const CSS = `
   .design-meta-name { font-size: 12px; font-weight: 500; font-family: 'Geist', sans-serif; }
   .design-meta-cat  { font-size: 10px; font-family: 'Geist Mono', monospace; padding: 2px 8px; border-radius: 100px; }
 `;
+
+// The images come from a Next image optimizer that accepts these widths.
+const srcSetFor = src => [384, 640, 828].map(w => `${src.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`).join(", ");
+const IMG_SIZES = "(max-width: 640px) 100vw, 360px";
+
+// Looping video (replaces a 1.3 MB GIF). Nothing is downloaded until it
+// scrolls into view, and it pauses again when it leaves.
+function InViewVideo({ src, poster, width, height, label }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !reduced) video.play().catch(() => {});
+      else video.pause();
+    }, { rootMargin: "200px" });
+    io.observe(video);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <video
+      ref={ref}
+      poster={poster}
+      width={width}
+      height={height}
+      muted
+      loop
+      playsInline
+      preload="none"
+      aria-label={label}
+    >
+      <source src={src} type="video/webm" />
+    </video>
+  );
+}
 
 export function DesignsPage({ t }) {
   const [filter, setFilter] = useState("All");
@@ -95,11 +133,22 @@ export function DesignsPage({ t }) {
               className="design-card"
               style={{ border: `1px solid ${t.border}`, animationDelay: `${i * 0.04}s` }}
             >
-              <img
-                src={d.src}
-                alt={d.title}
-                onError={e => { e.currentTarget.style.display = "none"; }}
-              />
+              {d.video ? (
+                <InViewVideo src={d.video} poster={d.poster} width={d.w} height={d.h} label={d.title} />
+              ) : (
+                <img
+                  src={d.src}
+                  srcSet={srcSetFor(d.src)}
+                  sizes={IMG_SIZES}
+                  alt={d.title}
+                  width={d.w}
+                  height={d.h}
+                  loading={i < 3 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : "auto"}
+                  decoding="async"
+                  onError={e => { e.currentTarget.style.display = "none"; }}
+                />
+              )}
               <div className="design-reveal">
                 <div className="design-reveal-name">{d.title}</div>
                 <span className="design-reveal-cat">{d.cat}</span>

@@ -1,12 +1,13 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useTypewriter } from "../hooks/useTypewriter";
 import { TYPEWRITER_ROLES } from "../lib/data";
+import { useSite } from "./SiteShell";
+import HeroShader from "./HeroShader";
+import { loadGsap } from "../lib/gsap";
 
 const HERO_CSS = `
-  @keyframes heroFadeUp {
-    from { opacity: 0; transform: translateY(22px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
   @keyframes heroCursorBlink {
     0%,100% { opacity: 1; } 50% { opacity: 0; }
   }
@@ -20,9 +21,10 @@ const HERO_CSS = `
     25%      { transform: translate(-90px, 55px) scale(1.06); }
     75%      { transform: translate(60px, -40px) scale(1.12); }
   }
+  /* transform + opacity only, so it stays on the compositor */
   @keyframes badgeDotPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
-    50%      { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+    0%       { transform: scale(1);   opacity: .5; }
+    70%, 100% { transform: scale(2.6); opacity: 0; }
   }
 
   .hero-section {
@@ -44,24 +46,27 @@ const HERO_CSS = `
     padding: 5px 14px; border-radius: 100px;
     font-family: 'Geist Mono', monospace; font-size: 12px;
     margin-bottom: 32px;
-    animation: heroFadeUp .55s both;
   }
   .hero-badge-dot {
     width: 7px; height: 7px; border-radius: 50%; background: #22c55e;
-    flex-shrink: 0;
-    animation: badgeDotPulse 2.4s ease-in-out infinite;
+    flex-shrink: 0; position: relative;
   }
+  .hero-badge-dot::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: #22c55e;
+    animation: badgeDotPulse 2.4s ease-out infinite;
+  }
+  .hero-orbs { position: absolute; inset: 0; pointer-events: none; transition: opacity 1.2s ease; }
+  .hero-line { display: block; will-change: transform; }
   .hero-heading {
     font-family: 'Geist', sans-serif; font-weight: 700;
     line-height: .94; letter-spacing: -.05em;
     margin-bottom: 28px;
-    animation: heroFadeUp .55s .07s both;
   }
   .hero-role {
     font-family: 'Geist Mono', monospace;
     letter-spacing: -.01em;
     margin-bottom: 24px;
-    animation: heroFadeUp .55s .14s both;
   }
   .hero-role-cursor {
     display: inline-block;
@@ -70,13 +75,12 @@ const HERO_CSS = `
   .hero-desc {
     font-size: 16px; line-height: 1.85; max-width: 560px;
     margin-bottom: 40px;
-    animation: heroFadeUp .55s .21s both;
   }
   .hero-ctas {
     display: flex; gap: 12px; flex-wrap: wrap;
     margin-bottom: 64px;
-    animation: heroFadeUp .55s .28s both;
   }
+  .hero-btn-primary, .hero-btn-secondary { display: inline-block; }
   .hero-btn-primary {
     padding: 12px 28px; border-radius: 10px;
     font-weight: 500; font-size: 14px;
@@ -99,7 +103,6 @@ const HERO_CSS = `
 
   .hero-stats {
     display: flex;
-    animation: heroFadeUp .55s .35s both;
   }
   .hero-stat { flex: 1; padding: 24px 0; }
   .hero-stat-n {
@@ -118,8 +121,48 @@ const HERO_CSS = `
   }
 `;
 
-export default function Hero({ t, navigate, dark }) {
+export default function Hero({ t, dark }) {
   const role = useTypewriter(TYPEWRITER_ROLES);
+  const { introDone } = useSite();
+  const rootRef  = useRef(null);
+  const introRef = useRef(null);
+  const [shaderOn, setShaderOn] = useState(false);
+
+  const introDoneRef = useRef(introDone);
+
+  // Intro timeline: GSAP is fetched after hydration and the timeline is built
+  // paused, then played once the loader starts lifting. Everything is painted
+  // visible in the static HTML first. Large text (heading, role, description)
+  // only moves — it never fades — so it stays a valid LCP candidate.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let ctx = null;
+    let active = true;
+
+    loadGsap().then(gsap => {
+      if (!active || !rootRef.current) return;
+      ctx = gsap.context(() => {
+        introRef.current = gsap.timeline({ paused: true, defaults: { ease: "power3.out" } })
+          .from(".hero-badge", { y: 16, autoAlpha: 0, duration: 0.6 })
+          .from(".hero-line",  { y: 48, duration: 1.1, stagger: 0.09, ease: "power4.out" }, "-=0.4")
+          .from([".hero-role", ".hero-desc"], { y: 24, duration: 0.9, stagger: 0.07 }, "-=0.9")
+          .from(".hero-ctas",  { y: 20, autoAlpha: 0, duration: 0.6 }, "-=0.6")
+          .from(".hero-stat",  { y: 24, autoAlpha: 0, duration: 0.6, stagger: 0.07 }, "-=0.45");
+      }, rootRef.current);
+      if (introDoneRef.current) introRef.current.play();
+    });
+
+    return () => {
+      active = false;
+      ctx?.revert();
+      introRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    introDoneRef.current = introDone;
+    if (introDone) introRef.current?.play();
+  }, [introDone]);
 
   const orb1 = dark
     ? "radial-gradient(circle at 50% 50%, rgba(99,102,241,0.28) 0%, transparent 62%)"
@@ -135,31 +178,44 @@ export default function Hero({ t, navigate, dark }) {
     <>
       <style>{HERO_CSS}</style>
       <section
+        ref={rootRef}
         className="hero-section"
         style={{ backgroundImage: dotGrid, backgroundSize: "32px 32px" }}
       >
-        {/* Orb 1 — indigo, top-left */}
-        <div
-          className="hero-orb"
-          style={{
-            width: 820, height: 820,
-            top: "-260px", left: "-200px",
-            background: orb1,
-            animation: "orbFloat1 18s ease-in-out infinite",
-          }}
-        />
-        {/* Orb 2 — purple, bottom-right */}
-        <div
-          className="hero-orb"
-          style={{
-            width: 620, height: 620,
-            bottom: "-80px", right: "-60px",
-            background: orb2,
-            animation: "orbFloat2 24s ease-in-out infinite",
-          }}
-        />
+        {/* WebGL aurora (desktop) — replaces the CSS orbs once it is running */}
+        <HeroShader dark={dark} start={introDone} onReady={() => setShaderOn(true)} />
 
-        <div className="hero-inner">
+        {/* CSS orbs — fallback for mobile / reduced motion / no WebGL.
+            The wrappers carry Locomotive parallax; the inner orbs keep
+            their CSS float animation. */}
+        <div className="hero-orbs" aria-hidden="true" style={{ opacity: shaderOn ? 0 : 1 }}>
+          <div data-scroll data-scroll-speed="-0.15" style={{ position: "absolute", inset: 0 }}>
+            {/* Orb 1 — indigo, top-left */}
+            <div
+              className="hero-orb"
+              style={{
+                width: 820, height: 820,
+                top: "-260px", left: "-200px",
+                background: orb1,
+                animation: "orbFloat1 18s ease-in-out infinite",
+              }}
+            />
+          </div>
+          <div data-scroll data-scroll-speed="0.1" style={{ position: "absolute", inset: 0 }}>
+            {/* Orb 2 — purple, bottom-right */}
+            <div
+              className="hero-orb"
+              style={{
+                width: 620, height: 620,
+                bottom: "-80px", right: "-60px",
+                background: orb2,
+                animation: "orbFloat2 24s ease-in-out infinite",
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="hero-inner" data-scroll data-scroll-speed="0.06">
 
           {/* Status badge */}
           <div className="hero-badge" style={{ border: `1px solid ${t.border}`, color: t.muted }}>
@@ -172,9 +228,9 @@ export default function Hero({ t, navigate, dark }) {
             className="hero-heading"
             style={{ fontSize: "clamp(3rem,8.5vw,7rem)", color: t.text }}
           >
-            I&apos;m Nitish Kumar<br />
-            <span style={{ color: t.muted }}>MERN Stack Developer</span><br />
-            <span style={{ color: t.dim }}>&amp; DevOps Engineer.</span>
+            <span className="hero-line">I&apos;m Nitish Kumar</span>
+            <span className="hero-line" style={{ color: t.muted }}>MERN Stack Developer</span>
+            <span className="hero-line" style={{ color: t.dim }}>&amp; DevOps Engineer.</span>
           </h1>
 
           {/* Typewriter role */}
@@ -195,22 +251,22 @@ export default function Hero({ t, navigate, dark }) {
 
           {/* CTAs */}
           <div className="hero-ctas">
-            <button
+            <Link
+              href="/projects"
               className="hero-btn-primary"
-              onClick={() => navigate("projects")}
               style={{ background: t.text, color: t.inv }}
             >
               Let&apos;s Connect
-            </button>
-            <button
+            </Link>
+            <Link
+              href="/about"
               className="hero-btn-secondary"
-              onClick={() => navigate("about")}
               style={{ border: `1px solid ${t.border}`, color: t.muted }}
               onMouseOver={e => { e.currentTarget.style.borderColor = t.muted; e.currentTarget.style.color = t.text; }}
               onMouseOut={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.muted; }}
             >
               About Me
-            </button>
+            </Link>
           </div>
 
           {/* Stats */}

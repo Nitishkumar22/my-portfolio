@@ -1,6 +1,7 @@
 "use client";
-import { useRef, useEffect, useState } from "react";
+import { useRef } from "react";
 import { EXPERIENCE } from "../lib/data";
+import { useReveal } from "../hooks/useReveal";
 import ExperienceCarousel from "./ExperienceCarousel";
 
 const CSS = `
@@ -18,30 +19,14 @@ const CSS = `
 
 export default function Experience({ t }) {
   const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.08 }
-    );
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
+  useReveal(ref);
 
   return (
     <>
       <style>{CSS}</style>
       <section className="exp-section" ref={ref}>
-        <div
-          className="exp-inner"
-          style={{
-            opacity: visible ? 1 : 0,
-            transform: visible ? "none" : "translateY(24px)",
-            transition: "opacity 0.7s ease, transform 0.7s ease",
-          }}
-        >
-          <div className="exp-header">
+        <div className="exp-inner">
+          <div className="exp-header" data-reveal>
             <h2
               className="exp-title"
               style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", color: t.text }}
@@ -51,7 +36,9 @@ export default function Experience({ t }) {
             <span className="exp-subtitle" style={{ color: t.dim }}>// work history</span>
           </div>
 
-          <ExperienceCarousel experiences={EXPERIENCE} t={t} />
+          <div data-reveal>
+            <ExperienceCarousel experiences={EXPERIENCE} t={t} />
+          </div>
         </div>
       </section>
     </>

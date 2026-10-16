@@ -1,8 +1,13 @@
 "use client";
 // components/NavBar.jsx
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import ResumeModal from "./ResumeModal";
+import dynamic from "next/dynamic";
+
+// Loaded on first open — keeps Motion out of the initial bundle.
+const ResumeModal = dynamic(() => import("./ResumeModal"), { ssr: false });
 
 const NAV_CSS = `
   .nav-root {
@@ -57,9 +62,11 @@ const NAV_CSS = `
   }
 `;
 
-export default function NavBar({ page, setPage, dark, setDark, t }) {
+export default function NavBar({ dark, t }) {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
+  const [resumeUsed, setResumeUsed] = useState(false);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
@@ -67,12 +74,11 @@ export default function NavBar({ page, setPage, dark, setDark, t }) {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  const nav = p => { setPage(p); window.scrollTo(0, 0); };
-
   return (
     <>
       <style>{NAV_CSS}</style>
       <nav
+        aria-label="Main"
         className={`nav-root${scrolled ? " scrolled" : ""}`}
         style={{
           borderBottom: scrolled ? `1px solid ${t.border}` : "1px solid transparent",
@@ -82,24 +88,26 @@ export default function NavBar({ page, setPage, dark, setDark, t }) {
         }}
       >
         <div className="nav-inner">
-          <button className="nav-logo" onClick={() => nav("home")} style={{ color: t.text }}>
-            <span className="nav-logo-box" style={{ background: t.text, color: t.inv }}>NK</span>
+          <Link href="/" className="nav-logo" style={{ color: t.text }}>
+            <span className="nav-logo-box" style={{ background: t.text, color: t.inv }} aria-hidden="true">NK</span>
             Nitish
-          </button>
+          </Link>
 
           <div className="nav-links">
-            {[["About","about"],["Projects","projects"],["Designs","designs"]].map(([label,id]) => (
-              <button
-                key={id}
-                className={`nav-link ${page === id ? "active" : ""}`}
-                onClick={() => nav(id)}
-                style={{ color: page === id ? t.text : t.muted }}
+            {[["About","/about"],["Projects","/projects"],["Designs","/designs"]].map(([label,href]) => (
+              <Link
+                key={href}
+                href={href}
+                className={`nav-link ${pathname === href ? "active" : ""}`}
+                aria-current={pathname === href ? "page" : undefined}
+                style={{ color: pathname === href ? t.text : t.muted }}
               >
                 {label}
-              </button>
+              </Link>
             ))}
 
-            <button onClick={() => setResumeOpen(true)} className="nav-resume" style={{ color: t.muted }}
+            <button onClick={() => { setResumeUsed(true); setResumeOpen(true); }} className="nav-resume"
+              onPointerEnter={() => import("./ResumeModal")} style={{ color: t.muted }}
               onMouseOver={e => e.currentTarget.style.color = t.text}
               onMouseOut={e => e.currentTarget.style.color = t.muted}>
               Resume ↓
@@ -109,7 +117,7 @@ export default function NavBar({ page, setPage, dark, setDark, t }) {
           </div>
         </div>
       </nav>
-      <ResumeModal open={resumeOpen} onClose={() => setResumeOpen(false)} t={t} />
+      {resumeUsed && <ResumeModal open={resumeOpen} onClose={() => setResumeOpen(false)} t={t} />}
     </>
   );
 }

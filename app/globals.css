@@ -1,5 +1,4 @@
 /* app/globals.css */
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,7 +20,7 @@
   --inv: #fafafa;
 }
 
-html  { scroll-behavior: smooth; }
+/* Smooth scrolling is handled by Lenis (via Locomotive Scroll) — see SmoothScroll.jsx */
 body  {
   font-family: var(--font-geist), 'Geist', -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -40,4 +39,19 @@ button   { cursor: pointer; border: none; background: none; font-family: inherit
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(99,102,241,0.55);
+}
+
+/* Route change — applied only after the first page (see SiteShell) */
+@keyframes routeEnter {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+.route-enter { animation: routeEnter .45s cubic-bezier(.22,1,.36,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
 }

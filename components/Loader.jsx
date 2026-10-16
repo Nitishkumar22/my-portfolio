@@ -2,19 +2,35 @@
 /**
  * components/Loader.jsx
  *
- * Signature handwriting animation — matches the screen recording exactly.
+ * Signature handwriting animation (~1.75s, once per session, skippable).
  * "Nitish Kumar" is drawn stroke-by-stroke in cursive using SVG
  * stroke-dashoffset technique, then fades to filled text, then slides up.
  *
- * Font: "Great Vibes" (Google Fonts) — closest match to the video's
- *       signature cursive style.
+ * Font: "Great Vibes" — self-hosted via next/font in app/layout.js
+ *       (exposed as --font-signature), so it is preloaded and never
+ *       render-blocking.
+ *
+ * The loader is a fixed overlay; the page underneath is already rendered.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+
+// Timeline (seconds). Total = SLIDE_AT + SLIDE ≈ 1.75s — was 3.2s.
+const DRAW_DELAY = 0.05;
+const DRAW       = 0.9;
+const FILL       = 0.2;
+const HOLD       = 0.05;
+const SLIDE      = 0.55;
+const FILL_AT    = DRAW_DELAY + DRAW;   // 0.95
+const FILLED_AT  = FILL_AT + FILL;      // 1.15
+const SLIDE_AT   = FILLED_AT + HOLD;    // 1.2
+
+// Shown once per browser session; later loads in the same tab skip it.
+// The inline script in app/layout.js adds `loader-seen` to <html> before
+// first paint, so returning visitors never see a flash of the overlay.
+export const LOADER_SEEN_KEY = "nk-loader-seen";
 
 /* ── Inline CSS so this component is self-contained ── */
 const LOADER_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
-
   @keyframes signatureDraw {
     from { stroke-dashoffset: var(--path-len); }
     to   { stroke-dashoffset: 0; }
@@ -36,7 +52,7 @@ const LOADER_CSS = `
   }
 
   .sig-text {
-    font-family: 'Great Vibes', cursive;
+    font-family: var(--font-signature), 'Great Vibes', cursive;
     font-size: 110px;
     fill: transparent;
     stroke: #ffffff;
@@ -45,20 +61,22 @@ const LOADER_CSS = `
     stroke-dasharray: 4800;
     stroke-dashoffset: 4800;
     /* Phase 1: draw the stroke */
-    animation: signatureDraw 1.8s cubic-bezier(0.4, 0, 0.6, 1) 0.2s forwards;
+    animation: signatureDraw ${DRAW}s cubic-bezier(0.4, 0, 0.6, 1) ${DRAW_DELAY}s forwards;
   }
 
   .sig-text.filling {
     /* Phase 2: fill the text */
     animation:
-      signatureDraw 1.8s cubic-bezier(0.4, 0, 0.6, 1) 0.2s forwards,
-      signatureFillIn 0.4s ease 2s forwards;
+      signatureDraw ${DRAW}s cubic-bezier(0.4, 0, 0.6, 1) ${DRAW_DELAY}s forwards,
+      signatureFillIn ${FILL}s ease ${FILL_AT}s forwards;
   }
 
   .sig-text.filled {
     fill: #ffffff;
     stroke: transparent;
   }
+
+  html.loader-seen .site-loader { display: none; }
 
   .loader-dot {
     width: 5px; height: 5px; border-radius: 50%; background: #555;
@@ -68,21 +86,50 @@ const LOADER_CSS = `
   .loader-dot:nth-child(3) { animation: loaderDotBlink 1.1s .36s ease-in-out infinite; }
 `;
 
-export default function Loader({ onDone }) {
+export default function Loader({ onReveal, onDone }) {
   // phase: 0 = drawing | 1 = filling | 2 = filled | 3 = sliding out
   const [phase, setPhase] = useState(0);
 
+  const skip = useCallback(() => setPhase(p => Math.max(p, 3)), []);
+
   useEffect(() => {
-    // 0.2s delay + 1.8s draw = 2s → start fill
-    const t1 = setTimeout(() => setPhase(1), 2000);
-    // fill runs 0.4s → at 2.4s show filled
-    const t2 = setTimeout(() => setPhase(2), 2400);
-    // hold briefly then exit
-    const t3 = setTimeout(() => setPhase(3), 2700);
-    // notify parent
-    const t4 = setTimeout(() => onDone(),    3200);
-    return () => [t1,t2,t3,t4].forEach(clearTimeout);
-  }, [onDone]);
+    let seen = false;
+    try { seen = sessionStorage.getItem(LOADER_SEEN_KEY) === "1"; } catch {}
+    if (seen || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onDone();
+      return;
+    }
+    try { sessionStorage.setItem(LOADER_SEEN_KEY, "1"); } catch {}
+
+    const t1 = setTimeout(() => setPhase(p => Math.max(p, 1)), FILL_AT * 1000);
+    const t2 = setTimeout(() => setPhase(p => Math.max(p, 2)), FILLED_AT * 1000);
+    const t3 = setTimeout(skip, SLIDE_AT * 1000);
+    return () => [t1, t2, t3].forEach(clearTimeout);
+  }, [onDone, skip]);
+
+  // Slide-out phase (reached on schedule or by skipping): reveal the page
+  // immediately, unmount once the slide has finished.
+  useEffect(() => {
+    if (phase !== 3) return;
+    onReveal?.();
+    const t = setTimeout(onDone, SLIDE * 1000);
+    return () => clearTimeout(t);
+  }, [phase, onReveal, onDone]);
+
+  // Click, key press or scroll skips straight to the slide-out.
+  useEffect(() => {
+    const opts = { once: true, passive: true };
+    window.addEventListener("pointerdown", skip, opts);
+    window.addEventListener("keydown", skip, opts);
+    window.addEventListener("wheel", skip, opts);
+    window.addEventListener("touchmove", skip, opts);
+    return () => {
+      window.removeEventListener("pointerdown", skip);
+      window.removeEventListener("keydown", skip);
+      window.removeEventListener("wheel", skip);
+      window.removeEventListener("touchmove", skip);
+    };
+  }, [skip]);
 
   const textClass =
     phase === 0 ? "sig-text" :
@@ -93,6 +140,8 @@ export default function Loader({ onDone }) {
     <>
       <style>{LOADER_CSS}</style>
       <div
+        className="site-loader"
+        role="presentation"
         style={{
           position:  "fixed",
           inset:     0,
@@ -104,7 +153,7 @@ export default function Loader({ onDone }) {
           justifyContent:"center",
           gap: 36,
           animation: phase === 3
-            ? "loaderSlideOut .85s cubic-bezier(.76,0,.24,1) forwards"
+            ? `loaderSlideOut ${SLIDE}s cubic-bezier(.76,0,.24,1) forwards`
             : "none",
         }}
       >
@@ -112,7 +161,7 @@ export default function Loader({ onDone }) {
         <svg
           viewBox="0 0 760 160"
           style={{ width:"min(85vw,680px)", overflow:"visible" }}
-          aria-label="Nitish Kumar"
+          aria-hidden="true"
         >
           <text
             x="380"

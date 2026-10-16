@@ -1,12 +1,10 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
+import Link from "next/link";
 import { PROJECTS } from "../lib/data";
+import { useReveal } from "../hooks/useReveal";
 
 const CSS = `
-  @keyframes cardFadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
   .bento-section { padding: 5rem 1.5rem; }
   .bento-inner   { max-width: 1100px; margin: 0 auto; }
   .bento-header  {
@@ -26,7 +24,6 @@ const CSS = `
     border-radius: 14px; padding: 1.75rem;
     position: relative; overflow: hidden;
     transition: transform .3s cubic-bezier(.4,0,.2,1), border-color .25s, box-shadow .3s;
-    animation: cardFadeUp .55s both;
     cursor: default;
   }
   .bento-card:hover { transform: translateY(-5px); }
@@ -74,7 +71,7 @@ const BADGE_STYLES = {
   },
 };
 
-function BentoCard({ p, i, t, dark, navigate }) {
+function BentoCard({ p, i, t, dark }) {
   const ref = useRef(null);
   const [glow, setGlow] = useState({ x: 0, y: 0, on: false });
 
@@ -89,6 +86,7 @@ function BentoCard({ p, i, t, dark, navigate }) {
     <div
       ref={ref}
       className={`bento-card${p.size === "large" ? " large" : ""}`}
+      data-reveal
       onMouseMove={e => {
         const r = ref.current.getBoundingClientRect();
         setGlow({ x: e.clientX - r.left, y: e.clientY - r.top, on: true });
@@ -100,7 +98,6 @@ function BentoCard({ p, i, t, dark, navigate }) {
           : t.card,
         border: `1px solid ${glow.on ? borderHover : t.border}`,
         boxShadow: glow.on ? boxShadowHover : "none",
-        animationDelay: `${i * 0.08}s`,
       }}
     >
       {badge && (
@@ -137,62 +134,49 @@ function BentoCard({ p, i, t, dark, navigate }) {
           </span>
         ))}
       </div>
-      <a
-        href={p.live}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bento-link"
-        style={{ color: t.muted }}
-        onMouseOver={e => { e.currentTarget.style.color = t.text; }}
-        onMouseOut={e => { e.currentTarget.style.color = t.muted; }}
-      >
-        Visit website ↗
-      </a>
+      {p.live && p.live !== "#" && (
+        <a
+          href={p.live}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bento-link"
+          aria-label={`Visit website: ${p.title}`}
+          style={{ color: t.muted }}
+          onMouseOver={e => { e.currentTarget.style.color = t.text; }}
+          onMouseOut={e => { e.currentTarget.style.color = t.muted; }}
+        >
+          Visit website ↗
+        </a>
+      )}
     </div>
   );
 }
 
-export default function ProjectsBento({ t, navigate, dark }) {
+export default function ProjectsBento({ t, dark }) {
   const sectionRef = useRef(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.08 }
-    );
-    if (sectionRef.current) obs.observe(sectionRef.current);
-    return () => obs.disconnect();
-  }, []);
+  useReveal(sectionRef);
 
   return (
     <>
       <style>{CSS}</style>
       <section className="bento-section" ref={sectionRef}>
-        <div
-          className="bento-inner"
-          style={{
-            opacity: visible ? 1 : 0,
-            transform: visible ? "none" : "translateY(24px)",
-            transition: "opacity 0.7s ease, transform 0.7s ease",
-          }}
-        >
-          <div className="bento-header">
+        <div className="bento-inner">
+          <div className="bento-header" data-reveal>
             <h2
               className="bento-title"
               style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", color: t.text }}
             >
               My Projects
             </h2>
-            <button
+            <Link
+              href="/projects"
               className="bento-all"
               style={{ color: t.muted }}
-              onClick={() => navigate("projects")}
               onMouseOver={e => { e.currentTarget.style.color = t.text; }}
               onMouseOut={e => { e.currentTarget.style.color = t.muted; }}
             >
               View all →
-            </button>
+            </Link>
           </div>
 
           <div className="bento-grid">
@@ -203,7 +187,6 @@ export default function ProjectsBento({ t, navigate, dark }) {
                 i={i}
                 t={t}
                 dark={dark}
-                navigate={navigate}
               />
             ))}
           </div>

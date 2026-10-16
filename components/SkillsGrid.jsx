@@ -16,6 +16,13 @@ const CSS = `
   .skills-title    { font-family: 'Geist', sans-serif; font-weight: 700; letter-spacing: -.04em; }
   .skills-subtitle { font-family: 'Geist Mono', monospace; font-size: 11px; }
 
+  .skills-group { margin-bottom: 40px; }
+  .skills-group:last-child { margin-bottom: 0; }
+  .skills-group-label {
+    font-family: 'Geist Mono', monospace; font-size: 11px;
+    letter-spacing: .06em; text-transform: uppercase;
+    margin-bottom: 20px;
+  }
   .skills-grid {
     display: flex; flex-wrap: wrap; gap: 22px; justify-content: center;
   }
@@ -43,6 +50,11 @@ const CSS = `
   }
   .skill-wrap:hover .skill-label { color: #818cf8 !important; }
 `;
+
+const SKILL_GROUPS = [
+  { key: "dev",    label: "Development" },
+  { key: "devops", label: "DevOps & Cloud" },
+];
 
 export default function SkillsGrid({ t, dark }) {
   const ref = useRef(null);
@@ -79,37 +91,59 @@ export default function SkillsGrid({ t, dark }) {
             <span className="skills-subtitle" style={{ color: t.dim }}>// tech stack</span>
           </div>
 
-          <div className="skills-grid">
-            {SKILL_ICONS.map((skill, i) => (
-              <div
-                key={skill.name}
-                className="skill-wrap"
-                title={skill.name}
-                style={{
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? "none" : "translateY(14px) scale(0.86)",
-                  transition: `opacity 0.5s ${i * 0.04}s ease, transform 0.5s ${i * 0.04}s ease`,
-                }}
-              >
+          {SKILL_GROUPS.map(group => {
+            const groupSkills = SKILL_ICONS.filter(s => s.category === group.key);
+            return (
+              <div key={group.key} className="skills-group">
                 <div
-                  className="skill-icon-box"
+                  className="skills-group-label"
                   style={{
-                    border: `1px solid ${t.border}`,
-                    background: dark ? "#1c1c1e" : "#f0f0f2",
+                    color: t.dim,
+                    opacity: visible ? 1 : 0,
+                    transform: visible ? "none" : "translateY(14px)",
+                    transition: "opacity 0.6s ease, transform 0.6s ease",
                   }}
                 >
-                  <img
-                    className="skill-img"
-                    src={skill.custom || `https://skillicons.dev/icons?i=${skill.id}`}
-                    alt={skill.name}
-                    style={{ padding: skill.custom ? "8px" : "0" }}
-                    onError={e => { e.currentTarget.style.display = "none"; }}
-                  />
+                  {group.label}
                 </div>
-                <span className="skill-label" style={{ color: t.muted }}>{skill.name}</span>
+                <div className="skills-grid">
+                  {groupSkills.map((skill, i) => (
+                    <div
+                      key={skill.name}
+                      className="skill-wrap"
+                      title={skill.name}
+                      style={{
+                        opacity: visible ? 1 : 0,
+                        transform: visible ? "none" : "translateY(14px) scale(0.86)",
+                        transition: `opacity 0.5s ${i * 0.04}s ease, transform 0.5s ${i * 0.04}s ease`,
+                      }}
+                    >
+                      <div
+                        className="skill-icon-box"
+                        style={{
+                          border: `1px solid ${t.border}`,
+                          background: dark ? "#1c1c1e" : "#f0f0f2",
+                        }}
+                      >
+                        <img
+                          className="skill-img"
+                          src={`/icons/skills/${skill.id}.svg`}
+                          alt={skill.name}
+                          width={52}
+                          height={52}
+                          loading="lazy"
+                          decoding="async"
+                          style={{ padding: skill.custom ? "8px" : "0" }}
+                          onError={e => { e.currentTarget.style.display = "none"; }}
+                        />
+                      </div>
+                      <span className="skill-label" style={{ color: t.muted }}>{skill.name}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </section>
     </>

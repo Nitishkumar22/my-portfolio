@@ -1,7 +1,11 @@
 "use client";
 // app-pages/ProjectsPage.jsx
 import { useState } from "react";
+import { AnimatePresence, LazyMotion } from "motion/react";
+import * as m from "motion/react-m";
 import { PROJECTS } from "../lib/data";
+
+const loadMotionFeatures = () => import("../lib/motionFeatures").then(mod => mod.default);
 
 const PROJ_CSS = `
   @keyframes projFadeUp {
@@ -21,12 +25,7 @@ const PROJ_CSS = `
   }
 
   .proj-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
-  .proj-card {
-    border-radius: 14px; padding: 2rem; position: relative;
-    transition: transform .3s cubic-bezier(.4,0,.2,1);
-    animation: projFadeUp .55s both;
-  }
-  .proj-card:hover { transform: translateY(-4px); }
+  .proj-card { border-radius: 14px; padding: 2rem; position: relative; }
 
   .proj-year  { position: absolute; top: 18px; right: 18px; font-family: 'Geist Mono', monospace; font-size: 11px; }
   .proj-num   { font-family: 'Geist', sans-serif; font-size: 52px; font-weight: 700; letter-spacing: -.05em; line-height: 1; margin-bottom: 16px; user-select: none; }
@@ -78,33 +77,46 @@ export function ProjectsPage({ t }) {
           ))}
         </div>
 
+        <LazyMotion features={loadMotionFeatures} strict>
         <div className="proj-grid">
+          {/* initial={false}: cards in the static HTML render visible; only
+              filter changes animate. */}
+          <AnimatePresence mode="popLayout" initial={false}>
           {filtered.map((p, i) => (
-            <div
+            <m.div
               key={p.title}
               className="proj-card"
-              style={{ background: t.card, border: `1px solid ${t.border}`, animationDelay: `${i * 0.08}s` }}
+              style={{ background: t.card, border: `1px solid ${t.border}` }}
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] } }}
+              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+              whileHover={{ y: -4, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } }}
             >
               <span className="proj-year" style={{ color: t.dim }}>{p.year}</span>
               <div className="proj-num" style={{ color: t.dim }}>0{i + 1}</div>
-              <h3 className="proj-name" style={{ color: t.text }}>{p.title}</h3>
+              <h2 className="proj-name" style={{ color: t.text }}>{p.title}</h2>
               <p className="proj-desc" style={{ color: t.muted }}>{p.desc}</p>
               <div className="proj-tags">
                 {p.tags.map(tag => (
                   <span key={tag} className="proj-tag-pill" style={{ border: `1px solid ${t.border}`, color: t.dim }}>{tag}</span>
                 ))}
               </div>
-              <a
-                href={p.live} target="_blank" rel="noopener noreferrer"
-                className="proj-link" style={{ color: t.muted }}
-                onMouseOver={e => e.currentTarget.style.color = t.text}
-                onMouseOut={e => e.currentTarget.style.color = t.muted}
-              >
-                Visit website ↗
-              </a>
-            </div>
+              {p.live && p.live !== "#" && (
+                <a
+                  href={p.live} target="_blank" rel="noopener noreferrer"
+                  className="proj-link" style={{ color: t.muted }}
+                  aria-label={`Visit website: ${p.title}`}
+                  onMouseOver={e => e.currentTarget.style.color = t.text}
+                  onMouseOut={e => e.currentTarget.style.color = t.muted}
+                >
+                  Visit website ↗
+                </a>
+              )}
+            </m.div>
           ))}
+          </AnimatePresence>
         </div>
+        </LazyMotion>
       </div>
     </>
   );
